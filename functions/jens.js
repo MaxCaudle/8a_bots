@@ -50,7 +50,7 @@ Route: ${sendData.zlaggableName}
 Crag: ${sendData.cragName}
 Area: ${sendData.areaName}
 Difficulty: ${sendData.difficulty}
-Comment: ${sendData.comment}`
+Comment: ${sendData.comment.match(/(.|[\r\n]){1,100}/g).join("\n")}`;
     return msg
 }
 
