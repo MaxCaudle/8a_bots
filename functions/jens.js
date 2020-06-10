@@ -41,7 +41,11 @@ const checkAllUsers = async (req, res) => {
         var currentSends = users[user][currentyear]
         await postSends(user, currentSends, currentyear)
     })
-    return res.end();
+    if (res !== null) {
+        return res.end();
+    } else {
+        return null;
+    }
 }
 
 const makeSendMessage = (sendData) => {
