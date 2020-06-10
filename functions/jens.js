@@ -62,7 +62,7 @@ const checkAllUsers = async (req, res) => {
     if (res !== null) {
         return res.end();
     } else {
-        return null
+        return null;
     }
 }
 
