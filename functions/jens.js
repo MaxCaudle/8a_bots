@@ -47,8 +47,6 @@ const liveBoulderCounter = async(userName) => {
 // Check for sends
 ////////////////////////
 
-// TODO: add bouldering checks
-
 const checkAllUsers = async (req, res) => {
     const currentYear = getCurrentYear()
     const users = (
@@ -58,7 +56,9 @@ const checkAllUsers = async (req, res) => {
         var currentSportSends = users[user][currentYear]
         var currentBoulderSends = users[user]["boulders"][currentYear]
         await postSportSends(user, currentSportSends, currentYear)
-        await postBoulderSends(user, currentBoulderSends, currentYear)
+
+        // start with updates for proper data
+        // await postBoulderSends(user, currentBoulderSends, currentYear)
     })
     if (res === null || res === undefined) {
         return null;
