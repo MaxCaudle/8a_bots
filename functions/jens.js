@@ -1,5 +1,4 @@
 const admin = require("firebase-admin");
-const functions = require("firebase-functions");
 const slack = require("./slack");
 const axios = require("axios");
 
@@ -17,12 +16,30 @@ const db = admin.database();
 // helpers
 ////////////////////////
 const getCurrentYear = () => {return new Date().getFullYear()};
-const dbRef = (userName, year) => {return `users/${userName}/${year}`}; 
+const dbSportRef = (userName, year) => {return `users/${userName}/${year}`}; 
+const dbBoulderRef = (userName, year) => {return `users/${userName}/boulders/${year}`}; 
 
-const liveSends = async (userName) => {
+const liveSportCounter = async (userName) => {
     const url = `https://www.8a.nu/api/users/${userName}/ascents/years?categoryFilter=sportclimbing`;
     const ascentYears = await axios.get(url).then((response) => response.data);
-    latestAscentCount = ascentYears["years"][0]["totalAscents"] || 0
+    // 8a does not return a year with 0 sends
+    const latestYear = ascentYears["years"][0];
+    if (latestYear === undefined || latestYear["year"] !== getCurrentYear()) {
+        return 0;
+    }
+    const latestAscentCount = latestYear["totalAscents"] || 0;
+    return latestAscentCount;
+}
+
+const liveBoulderCounter = async(userName) => {
+    const url = `https://www.8a.nu/api/users/${userName}/ascents/years?categoryFilter=bouldering`;
+    const ascentYears = await axios.get(url).then((response) => response.data);
+    // 8a does not return a year with 0 sends
+    const latestYear = ascentYears["years"][0];
+    if (latestYear === undefined || latestYear["year"] !== getCurrentYear()) {
+        return 0;
+    }
+    const latestAscentCount = latestYear["totalAscents"] || 0;
     return latestAscentCount
 }
 
@@ -30,16 +47,19 @@ const liveSends = async (userName) => {
 // Check for sends
 ////////////////////////
 
-// TODO: add bouldering checks
-
 const checkAllUsers = async (req, res) => {
-    const currentyear = getCurrentYear()
+    const currentYear = getCurrentYear()
     const users = (
         await db.ref("users").once("value")
       ).val()
     Object.keys(users).forEach(async (user) => {
-        var currentSends = users[user][currentyear]
-        await postSends(user, currentSends, currentyear)
+        console.log(`Checking user ${user}`)
+        var currentSportSends = users[user][currentYear]
+        await postSportSends(user, currentSportSends, currentYear)
+
+        // start with updates for proper data
+        var currentBoulderSends = users[user]["boulders"][currentYear]
+        await postBoulderSends(user, currentBoulderSends, currentYear)
     })
     if (res === null || res === undefined) {
         return null;
@@ -58,16 +78,17 @@ Comment: ${sendData.comment}`
     return msg
 }
 
-const postSends = async (userName, dbSendCount, year) => {
-    const liveSendCount = await liveSends(userName);
-    if (dbSendCount !== liveSendCount ) {
+const postSportSends = async (userName, dbSendCount, year) => {
+    const liveSportCount = await liveSportCounter(userName);
+    // < makes this safe for users that havent sent for current year
+    if (dbSendCount < liveSportCount ) {
         var latestAscents = await axios
         .get(
             `https://www.8a.nu/api/users/${userName}/ascents?categoryFilter=sportclimbing&sortfield=date_desc`
         )
         .then((response) => response.data);
         latestAscents = latestAscents["ascents"];
-        const newSends = latestAscents.slice(0,liveSendCount - dbSendCount) || [];
+        const newSends = latestAscents.slice(0,liveSportCount - dbSendCount) || [];
         newSends.forEach(async (sendData) => {
             msg = makeSendMessage(sendData)
             await slack.sends({
@@ -75,9 +96,32 @@ const postSends = async (userName, dbSendCount, year) => {
                   `${msg}`,
               });
         });
-        await db.ref(dbRef(userName, year)).set(liveSendCount)
+        await db.ref(dbSportRef(userName, year)).set(liveSportCount)
       }
 };
+
+const postBoulderSends = async (userName, dbSendCount, year) => {
+    const liveBoulderCount = await liveBoulderCounter(userName);
+
+    // < makes this safe for users that havent sent for current year
+    if (dbSendCount < liveBoulderCount) {
+        var latestAscents = await axios
+        .get(
+            `https://www.8a.nu/api/users/${userName}/ascents?category=bouldering&pageSize=10&sortfield=date_desc&timeFilter=12`
+        )
+        .then((response) => response.data);
+        latestAscents = latestAscents["ascents"];
+        const newSends = latestAscents.slice(0,liveBoulderCount - dbSendCount) || [];
+        newSends.forEach(async (sendData) => {
+            msg = makeSendMessage(sendData)
+            await slack.sends({
+                text:
+                  `${msg}`,
+              });
+        });
+        await db.ref(dbBoulderRef(userName, year)).set(liveBoulderCount)
+      }
+}
 
 ////////////////////////
 // interact with jens
@@ -102,10 +146,12 @@ const addUser = async (req, res) => {
     const userName = params.split(" ")[1];
     const currentYear = getCurrentYear();
 
-    currentUser = await (await db.ref(dbRef(userName, currentYear)).once("value")).val();
+    currentUser = await (await db.ref(dbSportRef(userName, currentYear)).once("value")).val();
     if (currentUser === null) {
-        ascents = await liveSends(userName);
-        await db.ref(dbRef(userName, currentYear)).set(ascents);
+        var SportAscents = await liveSportCounter(userName);
+        var BoulderAscents = await liveBoulderCounter(userName);
+        await db.ref(dbSportRef(userName, currentYear)).set(SportAscents);
+        await db.ref(dbBoulderRef(userName, currentYear)).set(BoulderAscents);
         await slack.sends({text: `${userName} was added to the notification list`});
     } else {
         await res.send(`${userName} already in the notification list`);
