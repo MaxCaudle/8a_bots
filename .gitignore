@@ -65,7 +65,7 @@ node_modules/
 .env
 
 # my secrets
-functions/slackHooks.js
+jens/functions/slackHooks.js
 *.ipynb
 *.idea
 *.DS_STORE
