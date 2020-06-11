@@ -60,10 +60,10 @@ const checkAllUsers = async (req, res) => {
         await postSportSends(user, currentSportSends, currentYear)
         await postBoulderSends(user, currentBoulderSends, currentYear)
     })
-    if (res !== null) {
-        return res.end();
-    } else {
+    if (res === null || res === undefined) {
         return null;
+    } else {
+        return res.end();
     }
 }
 
