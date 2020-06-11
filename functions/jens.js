@@ -1,5 +1,4 @@
 const admin = require("firebase-admin");
-const functions = require("firebase-functions");
 const slack = require("./slack");
 const axios = require("axios");
 
@@ -23,6 +22,7 @@ const dbBoulderRef = (userName, year) => {return `users/${userName}/boulders/${y
 const liveSportCounter = async (userName) => {
     const url = `https://www.8a.nu/api/users/${userName}/ascents/years?categoryFilter=sportclimbing`;
     const ascentYears = await axios.get(url).then((response) => response.data);
+    // 8a does nto return a year with 0 sends
     const latestYear = ascentYears["years"][0]
     if (latestYear["year"] !== getCurrentYear()) {
         return 0
@@ -34,6 +34,7 @@ const liveSportCounter = async (userName) => {
 const liveBoulderCounter = async(userName) => {
     const url = `https://www.8a.nu/api/users/${userName}/ascents/years?categoryFilter=bouldering`;
     const ascentYears = await axios.get(url).then((response) => response.data);
+    // 8a does nto return a year with 0 sends
     const latestYear = ascentYears["years"][0]
     if (latestYear["year"] !== getCurrentYear()) {
         return 0
