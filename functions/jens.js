@@ -22,24 +22,24 @@ const dbBoulderRef = (userName, year) => {return `users/${userName}/boulders/${y
 const liveSportCounter = async (userName) => {
     const url = `https://www.8a.nu/api/users/${userName}/ascents/years?categoryFilter=sportclimbing`;
     const ascentYears = await axios.get(url).then((response) => response.data);
-    // 8a does nto return a year with 0 sends
-    const latestYear = ascentYears["years"][0]
-    if (latestYear["year"] !== getCurrentYear()) {
-        return 0
+    // 8a does not return a year with 0 sends
+    const latestYear = ascentYears["years"][0];
+    if (latestYear === undefined || latestYear["year"] !== getCurrentYear()) {
+        return 0;
     }
-    const latestAscentCount = latestYear["totalAscents"] || 0
-    return latestAscentCount
+    const latestAscentCount = latestYear["totalAscents"] || 0;
+    return latestAscentCount;
 }
 
 const liveBoulderCounter = async(userName) => {
     const url = `https://www.8a.nu/api/users/${userName}/ascents/years?categoryFilter=bouldering`;
     const ascentYears = await axios.get(url).then((response) => response.data);
-    // 8a does nto return a year with 0 sends
-    const latestYear = ascentYears["years"][0]
-    if (latestYear["year"] !== getCurrentYear()) {
-        return 0
+    // 8a does not return a year with 0 sends
+    const latestYear = ascentYears["years"][0];
+    if (latestYear === undefined || latestYear["year"] !== getCurrentYear()) {
+        return 0;
     }
-    const latestAscentCount = latestYear["totalAscents"] || 0
+    const latestAscentCount = latestYear["totalAscents"] || 0;
     return latestAscentCount
 }
 
@@ -53,12 +53,13 @@ const checkAllUsers = async (req, res) => {
         await db.ref("users").once("value")
       ).val()
     Object.keys(users).forEach(async (user) => {
+        console.log(`Checking user ${user}`)
         var currentSportSends = users[user][currentYear]
-        var currentBoulderSends = users[user]["boulders"][currentYear]
         await postSportSends(user, currentSportSends, currentYear)
 
         // start with updates for proper data
-        // await postBoulderSends(user, currentBoulderSends, currentYear)
+        var currentBoulderSends = users[user]["boulders"][currentYear]
+        await postBoulderSends(user, currentBoulderSends, currentYear)
     })
     if (res === null || res === undefined) {
         return null;
@@ -101,7 +102,7 @@ const postSportSends = async (userName, dbSendCount, year) => {
 
 const postBoulderSends = async (userName, dbSendCount, year) => {
     const liveBoulderCount = await liveBoulderCounter(userName);
-    
+
     // < makes this safe for users that havent sent for current year
     if (dbSendCount < liveBoulderCount) {
         var latestAscents = await axios
@@ -110,7 +111,7 @@ const postBoulderSends = async (userName, dbSendCount, year) => {
         )
         .then((response) => response.data);
         latestAscents = latestAscents["ascents"];
-        const newSends = latestAscents.slice(0,liveSportCount - dbSendCount) || [];
+        const newSends = latestAscents.slice(0,liveBoulderCount - dbSendCount) || [];
         newSends.forEach(async (sendData) => {
             msg = makeSendMessage(sendData)
             await slack.sends({
@@ -118,7 +119,7 @@ const postBoulderSends = async (userName, dbSendCount, year) => {
                   `${msg}`,
               });
         });
-        await db.ref(dbBoulderRef(userName, year)).set(liveSportCount)
+        await db.ref(dbBoulderRef(userName, year)).set(liveBoulderCount)
       }
 }
 
