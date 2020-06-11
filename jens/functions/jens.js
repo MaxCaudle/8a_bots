@@ -4,12 +4,6 @@ const axios = require("axios");
 
 admin.initializeApp();
 
-// TOGGLE FOR LOCAL ACCESS TO PROD FIREBASE DB
-// const serviceAccount = require('../service-account.json');
-// const adminConfig = JSON.parse(process.env.FIREBASE_CONFIG);
-// adminConfig.credential = admin.credential.cert(serviceAccount);
-// admin.initializeApp(adminConfig);
-
 const db = admin.database();
 
 ////////////////////////

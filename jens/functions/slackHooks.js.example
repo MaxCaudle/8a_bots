@@ -1,0 +1,6 @@
+const webhooks = {
+    sends: ""
+};
+module.exports = {
+    webhooks
+};
