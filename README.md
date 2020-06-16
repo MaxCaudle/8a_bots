@@ -6,7 +6,7 @@ A climbing slack group I'm in (it's cooler than it sounds) was complaining about
 Anyway. This repo might end up holding other bots, but for now - it is just Jens.
 
 ## Jens
-I Jens better than Jens. After 2 weeks of not getting notifications when my friends sent riggies, I almost quit 8a. Instead, I wrote a firebase app that checks for sends every hour and posts them to a slack channel.
+I Jens better than Jens. After 2 weeks of not getting notifications when my friends sent riggies, I almost quit 8a, and as the only purpose of climbing is logging 8a I almost quit climbing. Instead, I wrote a firebase app that checks for sends every hour and posts them to a slack channel.
 
 I currently have 3 `/slash` commands, which you trigger from slack.  
 1. `/jens add user-name` - I add a user to the database. The user-name should be the name in the user's url. E.g. for me, the URL to my profile is: `https://www.8a.nu/user/mason-caiby` and the slash command to add me is: `/jens add mason-caiby`. I will let you know in a private message if the user already exists in the Database
